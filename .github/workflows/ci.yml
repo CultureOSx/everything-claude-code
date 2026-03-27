@@ -41,6 +41,11 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - name: Enable Corepack shims
+        if: matrix.pm == 'yarn' || matrix.pm == 'pnpm'
+        shell: bash
+        run: corepack enable
+
       # Package manager setup
       - name: Setup pnpm
         if: matrix.pm == 'pnpm'
@@ -72,6 +77,8 @@ jobs:
         if: matrix.pm == 'pnpm'
         id: pnpm-cache-dir
         shell: bash
+        env:
+          COREPACK_ENABLE_STRICT: 0
         run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Cache pnpm
@@ -119,9 +126,8 @@ jobs:
         run: |
           case "${{ matrix.pm }}" in
             npm) npm ci ;;
-            pnpm) pnpm install ;;
-            # --ignore-engines required for Node 18 compat with some devDependencies (e.g., markdownlint-cli)
-            yarn) yarn install --ignore-engines ;;
+            pnpm) COREPACK_ENABLE_STRICT=0 pnpm install ;;
+            yarn) yarn install --mode=skip-build ;;
             bun) bun install ;;
             *) echo "Unsupported package manager: ${{ matrix.pm }}" && exit 1 ;;
           esac
